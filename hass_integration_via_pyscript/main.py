@@ -68,11 +68,12 @@ def login(session):
     else:
         log.error("Error Logging In!")
         raise Exception(f"[-] Login failed: {response.url}, page content saved in login_failed.html")
+    return response
 
 @service
 def esprit_check(action=None, id=None):
     sess = requests.Session()
-    login(sess)
+    response = login(sess)
     soup = BeautifulSoup(response.text, "html.parser")
     name = soup.find("span", {"id": "Label2"})
     classroom = soup.find("span", {"id": "Label3"})
@@ -181,6 +182,5 @@ def esprit_get_timetable(action=None, id=None):
         "__EVENTVALIDATION": eventvalidation,
     }
     response = task.executor(session.post, url, data=data)
-    f = task.executor(os.open, f"www/local/timetable_{classroom}.pdf", os.O_RDWR | os.O_CREAT)
+    f = task.executor(os.open, f"timetable_{classroom}.pdf", os.O_RDWR | os.O_CREAT)
     task.executor(os.write, f, response.content)
-    
