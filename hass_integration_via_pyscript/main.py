@@ -27,6 +27,7 @@ def login(session):
         "ctl00$ContentPlaceHolder1$pass_parent": _PASSWORD,
     }
     response = task.executor(session.post, url, data=data)
+    soup = BeautifulSoup(response.text, "html.parser")
     try:
         viewstate = soup.find("input", {"name": "__VIEWSTATE"})["value"]
         viewstategenerator = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"]
@@ -35,10 +36,6 @@ def login(session):
         with open("login_failed.html", "w") as f:
             f.write(response.text)
         raise Exception("[-] Couldn't find the required fields, page content saved in login_failed.html")
-    soup = BeautifulSoup(response.text, "html.parser")
-    viewstate = soup.find("input", {"name": "__VIEWSTATE"})["value"]
-    viewstategenerator = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"]
-    eventvalidation = soup.find("input", {"name": "__EVENTVALIDATION"})["value"]
     data = {
         "__EVENTTARGET": "",
         "__EVENTARGUMENT": "",
@@ -54,6 +51,7 @@ def login(session):
         "ctl00$ContentPlaceHolder1$pass_parent": ""
     }
     response = task.executor(session.post, url, data=data)
+    soup = BeautifulSoup(response.text, "html.parser")
     try:
         viewstate = soup.find("input", {"name": "__VIEWSTATE"})["value"]
         viewstategenerator = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"]
@@ -146,7 +144,6 @@ def esprit_get_timetable(action=None, id=None):
     url = "https://esprit-tn.com/esponline/Etudiants/Emplois.aspx"
     response = task.executor(session.get, url)
     soup = BeautifulSoup(response.text, "html.parser")
-    classroom = soup.find("span", {"id": "Label3"}).text
     viewstate = soup.find("input", {"name": "__VIEWSTATE"})["value"]
     eventvalidation = soup.find("input", {"name": "__EVENTVALIDATION"})["value"]
     viewstategenerator = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"]
@@ -187,5 +184,6 @@ def esprit_get_timetable(action=None, id=None):
         "__EVENTVALIDATION": eventvalidation,
     }
     response = task.executor(session.post, url, data=data)
-    f = task.executor(os.open, f"timetable_{classroom}.pdf", os.O_RDWR | os.O_CREAT)
+    f = task.executor(os.open, f"timetable.pdf", os.O_RDWR | os.O_CREAT)
     task.executor(os.write, f, response.content)
+    service.call("notify", "dynobeta", message="", data={"embed": {"title": str(latest_date) + " Timetable", "description": "Here is the latest timetable for your classroom", "color": 145406, "url": "https://homeassistant.reps.tn/local/timetable.pdf", "author": {"name": "ESPRIT-TN-API", "url": "https://github.com/Jev1337/ESPRIT-TN-API"}, "footer": {}, "thumbnail": {"url": "https://i.imgur.com/lKDeVmh.png"}}}, target="1246109976485695639")
