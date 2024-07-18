@@ -1,0 +1,3 @@
+termcolor
+bs4
+requests
