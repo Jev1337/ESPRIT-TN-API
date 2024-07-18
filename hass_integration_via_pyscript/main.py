@@ -3,10 +3,9 @@ import json
 from bs4 import BeautifulSoup
 from datetime import datetime
 import os
-
+_USERNAME = ""
+_PASSWORD = ""
 def login(session):
-    _USERNAME = ""
-    _PASSWORD = ""
     url = "https://esprit-tn.com/esponline/Online/default.aspx"
     response = task.executor(session.get, url)
     soup = BeautifulSoup(response.text, "html.parser")
@@ -80,6 +79,12 @@ def esprit_check(action=None, id=None):
     service.call("input_text", "set_value", entity_id="input_text.esprit_user_name", value=name.text)
     service.call("input_text", "set_value", entity_id="input_text.esprit_user_classroom", value=classroom.text)
 
+   
+
+@service
+def esprit_get_marks(action=None, id=None):
+    session = requests.Session()
+    response = login(session)
     url = "https://esprit-tn.com/ESPOnline/Etudiants/Resultat2021.aspx"
     response = task.executor(session.get, url)
     if response.url.lower() != "https://esprit-tn.com/ESPOnline/Etudiants/Resultat2021.aspx".lower():
