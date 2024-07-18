@@ -144,6 +144,7 @@ def esprit_get_timetable(action=None, id=None):
     url = "https://esprit-tn.com/esponline/Etudiants/Emplois.aspx"
     response = task.executor(session.get, url)
     soup = BeautifulSoup(response.text, "html.parser")
+    classroom = soup.find("span", {"id": "Label3"}).text
     viewstate = soup.find("input", {"name": "__VIEWSTATE"})["value"]
     eventvalidation = soup.find("input", {"name": "__EVENTVALIDATION"})["value"]
     viewstategenerator = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"]
@@ -184,6 +185,60 @@ def esprit_get_timetable(action=None, id=None):
         "__EVENTVALIDATION": eventvalidation,
     }
     response = task.executor(session.post, url, data=data)
-    f = task.executor(os.open, f"timetable.pdf", os.O_RDWR | os.O_CREAT)
+    f = task.executor(os.open, f"www/timetable.pdf", os.O_RDWR | os.O_CREAT)
     task.executor(os.write, f, response.content)
     service.call("notify", "dynobeta", message="", data={"embed": {"title": str(latest_date) + " Timetable", "description": "Here is the latest timetable for your classroom", "color": 145406, "url": "https://homeassistant.reps.tn/local/timetable.pdf", "author": {"name": "ESPRIT-TN-API", "url": "https://github.com/Jev1337/ESPRIT-TN-API"}, "footer": {}, "thumbnail": {"url": "https://i.imgur.com/lKDeVmh.png"}}}, target="1246109976485695639")
+    task.executor(os.close, f)
+    k = task.executor(os.open, f"www/pdfdisplay.html", os.O_RDWR | os.O_CREAT)
+    html = """
+    <!DOCTYPE html>
+        <html>
+        <head>
+            <title>PDF Display</title>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+        </head>
+        <body>
+            <div id="pdfContainer"></div>
+
+            <script>
+                // Function to load and display the PDF
+                // Function to load and display the PDF
+        function displayPDF() {
+            const pdfPath = 'timetable.pdf';
+            const searchText = '""" + classroom + """';
+
+            // Load the PDF document
+            pdfjsLib.getDocument(pdfPath).promise.then(function(pdf) {
+                // Loop through each page of the PDF
+                for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+                    // Get the text content of the page
+                    pdf.getPage(pageNumber).then(function(page) {
+                        page.getTextContent().then(function(textContent) {
+                            // Check if the page contains the search text
+                            if (textContent.items.some(item => item.str.includes(searchText))) {
+                                // Display the page
+                                const viewport = page.getViewport({ scale: 1.5 });
+                                const canvas = document.createElement('canvas');
+                                const context = canvas.getContext('2d');
+                                canvas.height = viewport.height;
+                                canvas.width = viewport.width;
+                                document.getElementById('pdfContainer').appendChild(canvas);
+                                page.render({ canvasContext: context, viewport: viewport });
+                            }
+                        });
+                    });
+                }
+            });
+        }   
+
+
+                // Call the displayPDF function when the page loads
+                window.onload = displayPDF;
+            </script>
+        </body>
+        </html>
+    """
+    
+    task.executor(os.write, k, html.encode('utf-8'))
+    task.executor(os.close, k)
+    
