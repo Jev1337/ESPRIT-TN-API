@@ -187,7 +187,6 @@ def esprit_get_timetable(action=None, id=None):
     response = task.executor(session.post, url, data=data)
     f = task.executor(os.open, f"www/timetable.pdf", os.O_RDWR | os.O_CREAT)
     task.executor(os.write, f, response.content)
-    service.call("notify", "dynobeta", message="", data={"embed": {"title": str(latest_date) + " Timetable", "description": "Here is the latest timetable for your classroom", "color": 145406, "url": "https://homeassistant.reps.tn/local/timetable.pdf", "author": {"name": "ESPRIT-TN-API", "url": "https://github.com/Jev1337/ESPRIT-TN-API"}, "footer": {}, "thumbnail": {"url": "https://i.imgur.com/lKDeVmh.png"}}}, target="1246109976485695639")
     task.executor(os.close, f)
     k = task.executor(os.open, f"www/pdfdisplay.html", os.O_RDWR | os.O_CREAT)
     html = """
@@ -241,4 +240,4 @@ def esprit_get_timetable(action=None, id=None):
     
     task.executor(os.write, k, html.encode('utf-8'))
     task.executor(os.close, k)
-    
+    service.call("notify", "dynobeta", message="", data={"embed": {"title": str(latest_date) + " Timetable", "description": "Here is the latest timetable for your classroom", "color": 145406, "url": "https://homeassistant.reps.tn/local/pdfdisplay.html", "author": {"name": "ESPRIT-TN-API", "url": "https://github.com/Jev1337/ESPRIT-TN-API"}, "footer": {}, "thumbnail": {"url": "https://i.imgur.com/lKDeVmh.png"}}}, target="1246109976485695639")
