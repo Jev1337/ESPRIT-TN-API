@@ -22,6 +22,7 @@ def getMarks(einst):
         tot += [cols]
     avg = 0
     totcoeff = 0
+    failed = 0
     for i in range(len(tot)):
         tot[i] = [x.replace(",", ".") for x in tot[i]]
         coeff = float(tot[i][1])
@@ -29,14 +30,23 @@ def getMarks(einst):
         nb = 0
         if (tot[i][3] != "" and tot[i][4] == "" and tot[i][5] != ""):
             nb += float(tot[i][3])*0.4 + float(tot[i][5])*0.6
+            if (float(tot[i][3])*0.4 + float(tot[i][5])*0.6 < 8):
+                failed += 1
         elif (tot[i][3] != "" and tot[i][4] != "" and tot[i][5] != ""):
             nb += float(tot[i][3])*0.3 + float(tot[i][4])*0.2 + float(tot[i][5])*0.5
+            if (float(tot[i][3])*0.3 + float(tot[i][4])*0.2 + float(tot[i][5])*0.5 < 8):
+                failed += 1
         elif (tot[i][3] == "" and tot[i][4] == "" and tot[i][5] != ""):
             nb+= float(tot[i][5])
+            if (float(tot[i][5]) < 8):
+                failed += 1
         elif (tot[i][3] == "" and tot[i][4] != "" and tot[i][5] != ""):
             nb += float(tot[i][4])*0.2 + float(tot[i][5])*0.8
+            if (float(tot[i][4])*0.2 + float(tot[i][5])*0.8 < 8):
+                failed += 1
         avg += nb*coeff
     avg /= totcoeff
+    print(colored("[+] You failed " + str(failed) + " modules", "green"))
     print(colored("[+] Your average is: " + str(avg), "green"))
     print(colored("[+] Your total coefficient is: " + str(totcoeff), "green"))
     print(colored("[+] Your marks are: ", "green"))

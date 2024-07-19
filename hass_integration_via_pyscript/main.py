@@ -1,5 +1,4 @@
 import requests
-import json
 from bs4 import BeautifulSoup
 from datetime import datetime
 import os
@@ -92,15 +91,13 @@ def esprit_get_marks(action=None, id=None):
     rows = table.find_all("tr")
     tot = []
 
-    #Using the marks, we calculate the average by using this js formula:
-
-
     for row in rows[1:]:
         cols = row.find_all("td")
         cols = [ele.text.strip() for ele in cols]
         tot += [cols]
         avg = 0
     totcoeff = 0
+    failed = 0
     data=   {"embed": { "title": "Returned Modules for " + _USERNAME, 
                         "description": "@everyone Grades have been updated!", 
                         "color": 145406,
@@ -117,19 +114,34 @@ def esprit_get_marks(action=None, id=None):
         coeff = float(tot[i][1])
         totcoeff += coeff
         nb = 0
-        data["embed"]["fields"].append({"name": "Module "+ tot[i][0], "value": "Coeff: "+ tot[i][1] + "\nNote CC: "+ tot[i][3] + "\nNote TP: "+ tot[i][4] + "\nNote Examen: "+ tot[i][5] , "inline": True})
+        #Template: data["embed"]["fields"].append({"name": "Module "+ tot[i][0], "value": "Coeff: "+ tot[i][1] + "\nNote CC: "+ tot[i][3] + "\nNote TP: "+ tot[i][4] + "\nNote Examen: "+ tot[i][5], "inline": True})
         if (tot[i][3] != "" and tot[i][4] == "" and tot[i][5] != ""):
-            nb += float(tot[i][3])*0.4 + float(tot[i][5])*0.6
+            avs = float(tot[i][3])*0.4 + float(tot[i][5])*0.6
+            nb += avs
+            if (avs < 8):
+                failed += 1
+            data["embed"]["fields"].append({"name": "Module "+ tot[i][0], "value": "Coeff: "+ tot[i][1] + "\nNote CC: "+ tot[i][3] + "\nNote Examen: "+ tot[i][5] + "\nAverage: "+ str(f"{avs:.2f}"), "inline": True})
         elif (tot[i][3] != "" and tot[i][4] != "" and tot[i][5] != ""):
-            nb += float(tot[i][3])*0.3 + float(tot[i][4])*0.2 + float(tot[i][5])*0.5
+            avs = float(tot[i][3])*0.3 + float(tot[i][4])*0.2 + float(tot[i][5])*0.5 
+            nb += avs
+            if (avs < 8):
+                failed += 1
+            data["embed"]["fields"].append({"name": "Module "+ tot[i][0], "value": "Coeff: "+ tot[i][1] + "\nNote CC: "+ tot[i][3] + "\nNote TP: "+ tot[i][4] + "\nNote Examen: "+ tot[i][5] + "\nAverage: "+ str(f"{avs:.2f}"), "inline": True})
         elif (tot[i][3] == "" and tot[i][4] == "" and tot[i][5] != ""):
-            nb+= float(tot[i][5])
+            avs = float(tot[i][5])
+            nb+= avs
+            if (avs < 8):
+                failed += 1
+            data["embed"]["fields"].append({"name": "Module "+ tot[i][0], "value": "Coeff: "+ tot[i][1] + "\nNote Examen: "+ tot[i][5] + "\nAverage: "+ str(f"{avs:.2f}"), "inline": True})
         elif (tot[i][3] == "" and tot[i][4] != "" and tot[i][5] != ""):
-            
-            nb += float(tot[i][4])*0.2 + float(tot[i][5])*0.8
+            avs = float(tot[i][4])*0.2 + float(tot[i][5])*0.8
+            nb += avs
+            if (avs < 8):
+                failed += 1
+            data["embed"]["fields"].append({"name": "Module "+ tot[i][0], "value": "Coeff: "+ tot[i][1] + "\nNote TP: "+ tot[i][4] + "\nNote Examen: "+ tot[i][5] + "\nAverage: "+ str(f"{avs:.2f}"), "inline": True})
         avg += nb*coeff
     avg /= totcoeff
-    data["embed"]["footer"]["text"] = "Average Marks: " + str(f"{avg:.2f}") + " | Total Returned Modules: " + str(len(tot)) + " | By Jev1337"
+    data["embed"]["footer"]["text"] = "Average Marks: " + str(f"{avg:.2f}") + " | Total Returned Modules: " + str(len(tot)) + " | Failed Modules: " + str(failed) + " | ESPRIT-TN-API"
     if int(float(input_number.esprit_marks_nb)) != len(tot):
         service.call("notify", "dynobeta", message="", data=data, target="1246109976485695639")
         
@@ -162,7 +174,6 @@ def esprit_get_timetable(action=None, id=None):
                     date_obj = datetime.strptime(date_str, "%d-%m-%Y")
                     if date_obj > latest_date:
                         latest_date = date_obj
-                        # Assuming the third column contains the <a> tag with the href
                         latest_href = cells[1].find("a")["href"]
                 except ValueError:
                     log.error("Error parsing date")
@@ -172,7 +183,6 @@ def esprit_get_timetable(action=None, id=None):
                     date_obj = datetime.strptime(date_str, "%d-%m-%Y")
                     if date_obj > latest_date:
                         latest_date = date_obj
-                        # Assuming the third column contains the <a> tag with the href
                         latest_href = cells[1].find("a")["href"]
                 except ValueError:
                     log.error("Error parsing date")
