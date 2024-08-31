@@ -73,10 +73,14 @@ def esprit_check(action=None, id=None):
     soup = BeautifulSoup(response.text, "html.parser")
     name = soup.find("span", {"id": "Label2"})
     classroom = soup.find("span", {"id": "Label3"})
+    if classroom is None:
+        classroom = "Class Unavailable"
+    else:
+        classroom = classroom.text
     service.call("input_text", "set_value", entity_id="input_text.esprit_user_name", value=name.text)
-    service.call("input_text", "set_value", entity_id="input_text.esprit_user_classroom", value=classroom.text)
+    
+    service.call("input_text", "set_value", entity_id="input_text.esprit_user_classroom", value=classroom)
 
-   
 
 @service
 def esprit_get_marks(action=None, id=None):
@@ -88,9 +92,12 @@ def esprit_get_marks(action=None, id=None):
         return
     soup = BeautifulSoup(response.text, "html.parser")
     table = soup.find("table", {"id": "ContentPlaceHolder1_GridView1"})
+    if table is None:
+        service.call("input_number", "set_value", entity_id="input_number.esprit_marks_avg", value=0)
+        service.call("input_number", "set_value", entity_id="input_number.esprit_marks_nb", value=0)
+        return
     rows = table.find_all("tr")
     tot = []
-
     for row in rows[1:]:
         cols = row.find_all("td")
         cols = [ele.text.strip() for ele in cols]
@@ -156,7 +163,11 @@ def esprit_get_timetable(action=None, id=None):
     url = "https://esprit-tn.com/esponline/Etudiants/Emplois.aspx"
     response = task.executor(session.get, url)
     soup = BeautifulSoup(response.text, "html.parser")
-    classroom = soup.find("span", {"id": "Label3"}).text
+    classroom = soup.find("span", {"id": "Label3"})
+    if classroom is None:
+        classroom = "Class Unavailable"
+    else:
+        classroom = classroom.text
     viewstate = soup.find("input", {"name": "__VIEWSTATE"})["value"]
     eventvalidation = soup.find("input", {"name": "__EVENTVALIDATION"})["value"]
     viewstategenerator = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"]
@@ -203,29 +214,37 @@ def esprit_get_timetable(action=None, id=None):
     <!DOCTYPE html>
         <html>
         <head>
+            <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+            <meta http-equiv="Pragma" content="no-cache" />
+            <meta http-equiv="Expires" content="0" />
             <title>PDF Display</title>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css">
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+            <style>
+                #pdfContainer {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                }
+            </style>
         </head>
         <body>
-            <div id="pdfContainer"></div>
-
+            <div id="pdfContainer">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
             <script>
-                // Function to load and display the PDF
-                // Function to load and display the PDF
         function displayPDF() {
             const pdfPath = 'timetable.pdf';
             const searchText = '""" + classroom + """';
-
-            // Load the PDF document
             pdfjsLib.getDocument(pdfPath).promise.then(function(pdf) {
-                // Loop through each page of the PDF
                 for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-                    // Get the text content of the page
                     pdf.getPage(pageNumber).then(function(page) {
                         page.getTextContent().then(function(textContent) {
-                            // Check if the page contains the search text
                             if (textContent.items.some(item => item.str.includes(searchText))) {
-                                // Display the page
                                 const viewport = page.getViewport({ scale: 1.5 });
                                 const canvas = document.createElement('canvas');
                                 const context = canvas.getContext('2d');
@@ -236,6 +255,18 @@ def esprit_get_timetable(action=None, id=None):
                             }
                         });
                     });
+                }
+                document.getElementsByClassName('spinner-border')[0].remove();
+                if (document.getElementById('pdfContainer').childElementCount === 0) {
+                    document.getElementById('pdfContainer').innerHTML = 'Class not found in timetable';
+                    document.getElementById('pdfContainer').style.color = 'red';
+                    document.getElementById('pdfContainer').style.fontSize = '2rem';
+                    document.getElementById('pdfContainer').style.fontWeight = 'bold';
+                    document.getElementById('pdfContainer').style.textAlign = 'center';
+                    document.getElementById('pdfContainer').style.display = 'flex';
+                    document.getElementById('pdfContainer').style.justifyContent = 'center';
+                    document.getElementById('pdfContainer').style.alignItems = 'center';
+                    document.getElementById('pdfContainer').style.fontFamily = 'Arial, sans-serif';
                 }
             });
         }   
