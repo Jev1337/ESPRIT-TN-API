@@ -237,41 +237,56 @@ def esprit_get_timetable(action=None, id=None):
                 </div>
             </div>
             <script>
-        function displayPDF() {
-            const pdfPath = 'timetable.pdf';
-            const searchText = '""" + classroom + """';
-            pdfjsLib.getDocument(pdfPath).promise.then(function(pdf) {
-                for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-                    pdf.getPage(pageNumber).then(function(page) {
-                        page.getTextContent().then(function(textContent) {
-                            if (textContent.items.some(item => item.str.includes(searchText))) {
+                async function displayPDF() {
+                    const pdfPath = 'timetable.pdf';
+                    const searchText = '""" + classroom + """';
+                    const pdfContainer = document.getElementById('pdfContainer');
+                    const loadingSpinner = document.getElementsByClassName('spinner-border')[0];
+                
+                    try {
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                        const pdf = await pdfjsLib.getDocument(pdfPath).promise;
+                        let classFound = false;
+                
+                        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+                            const page = await pdf.getPage(pageNumber);
+                            const textContent = await page.getTextContent();
+                            
+        
+                            if (textContent.items.map(item => item.str).join('').includes(searchText)) {
+                                classFound = true;
                                 const viewport = page.getViewport({ scale: 1.5 });
                                 const canvas = document.createElement('canvas');
                                 const context = canvas.getContext('2d');
                                 canvas.height = viewport.height;
                                 canvas.width = viewport.width;
-                                document.getElementById('pdfContainer').appendChild(canvas);
-                                page.render({ canvasContext: context, viewport: viewport });
+                                pdfContainer.appendChild(canvas);
+                                await page.render({ canvasContext: context, viewport: viewport }).promise;
                             }
-                        });
-                    });
+                        }
+                
+                        loadingSpinner.remove();
+                
+                        if (!classFound) {
+                            pdfContainer.innerHTML = 'Class not found in timetable';
+                            pdfContainer.style.color = 'red';
+                            pdfContainer.style.fontSize = '2rem';
+                            pdfContainer.style.fontWeight = 'bold';
+                            pdfContainer.style.textAlign = 'center';
+                            pdfContainer.style.display = 'flex';
+                            pdfContainer.style.justifyContent = 'center';
+                            pdfContainer.style.alignItems = 'center';
+                            pdfContainer.style.fontFamily = 'Arial, sans-serif';
+                        }
+                    } catch (error) {
+                        console.error('Error loading PDF:', error);
+                        loadingSpinner.remove();
+                        pdfContainer.innerHTML = 'Error loading PDF';
+                        pdfContainer.style.color = 'red';
+                        pdfContainer.style.textAlign = 'center';
+                    }
                 }
-                document.getElementsByClassName('spinner-border')[0].remove();
-                if (document.getElementById('pdfContainer').childElementCount === 0) {
-                    document.getElementById('pdfContainer').innerHTML = 'Class not found in timetable';
-                    document.getElementById('pdfContainer').style.color = 'red';
-                    document.getElementById('pdfContainer').style.fontSize = '2rem';
-                    document.getElementById('pdfContainer').style.fontWeight = 'bold';
-                    document.getElementById('pdfContainer').style.textAlign = 'center';
-                    document.getElementById('pdfContainer').style.display = 'flex';
-                    document.getElementById('pdfContainer').style.justifyContent = 'center';
-                    document.getElementById('pdfContainer').style.alignItems = 'center';
-                    document.getElementById('pdfContainer').style.fontFamily = 'Arial, sans-serif';
-                }
-            });
-        }   
-
-
+        
                 // Call the displayPDF function when the page loads
                 window.onload = displayPDF;
             </script>
