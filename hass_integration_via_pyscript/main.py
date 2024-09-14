@@ -191,12 +191,15 @@ def esprit_get_timetable(action=None, id=None):
             if "Emploi du temps Semaine" in cell.text:
                 date_str = cell.text.split("Emploi du temps Semaine ")[1].split(".pdf")[0]
                 try:
+                    date_str = cell.text.split("Emploi du temps Semaine ")[1].split(str(datetime.now().year))[0] + str(datetime.now().year)
                     date_obj = datetime.strptime(date_str, "%d-%m-%Y")
                     if date_obj > latest_date:
                         latest_date = date_obj
                         latest_href = cells[1].find("a")["href"]
                 except ValueError:
-                    log.error("Error parsing date")
+                    log.error("Error parsing date v2, Quitting")
+                    
+
     log.info(f"Latest timetable is: {latest_date} with href {latest_href}")
     data = {
         "__EVENTTARGET": latest_href.split("'")[1],
@@ -238,54 +241,59 @@ def esprit_get_timetable(action=None, id=None):
             </div>
             <script>
                 async function displayPDF() {
-                    const pdfPath = 'timetable.pdf';
-                    const searchText = '""" + classroom + """';
-                    const pdfContainer = document.getElementById('pdfContainer');
-                    const loadingSpinner = document.getElementsByClassName('spinner-border')[0];
-                
-                    try {
-                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-                        const pdf = await pdfjsLib.getDocument(pdfPath).promise;
-                        let classFound = false;
-                
-                        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-                            const page = await pdf.getPage(pageNumber);
-                            const textContent = await page.getTextContent();
-                            
+            const pdfPath = 'timetable.pdf';
+            const searchText = '""" + classroom + """';
+            const pdfContainer = document.getElementById('pdfContainer');
+            const loadingSpinner = document.getElementsByClassName('spinner-border')[0];
         
-                            if (textContent.items.map(item => item.str).join('').includes(searchText)) {
-                                classFound = true;
-                                const viewport = page.getViewport({ scale: 1.5 });
-                                const canvas = document.createElement('canvas');
-                                const context = canvas.getContext('2d');
-                                canvas.height = viewport.height;
-                                canvas.width = viewport.width;
-                                pdfContainer.appendChild(canvas);
-                                await page.render({ canvasContext: context, viewport: viewport }).promise;
-                            }
-                        }
-                
-                        loadingSpinner.remove();
-                
-                        if (!classFound) {
-                            pdfContainer.innerHTML = 'Class not found in timetable';
-                            pdfContainer.style.color = 'red';
-                            pdfContainer.style.fontSize = '2rem';
-                            pdfContainer.style.fontWeight = 'bold';
-                            pdfContainer.style.textAlign = 'center';
-                            pdfContainer.style.display = 'flex';
-                            pdfContainer.style.justifyContent = 'center';
-                            pdfContainer.style.alignItems = 'center';
-                            pdfContainer.style.fontFamily = 'Arial, sans-serif';
-                        }
-                    } catch (error) {
-                        console.error('Error loading PDF:', error);
-                        loadingSpinner.remove();
-                        pdfContainer.innerHTML = 'Error loading PDF';
-                        pdfContainer.style.color = 'red';
-                        pdfContainer.style.textAlign = 'center';
-                    }
+            try {
+                var text_to_search = searchText;
+                if (text_to_search[text_to_search.length - 1] >= '0' && text_to_search[text_to_search.length - 1] <= '9') {
+                    text_to_search += "0";
                 }
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                const pdfData = await fetch(pdfPath).then(response => response.arrayBuffer());
+                const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                let classFound = false;
+        
+                for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+                    const page = await pdf.getPage(pageNumber);
+                    const textContent = await page.getTextContent();
+                    if (textContent.items.map(item => item.str).join('').includes(text_to_search)) {
+                        classFound = true;
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        pdfContainer.appendChild(canvas);
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    }
+
+                    if (classFound)
+                        break;
+                }  
+                loadingSpinner.remove();
+        
+                if (!classFound) {
+                    pdfContainer.innerHTML = 'Class not found in timetable';
+                    pdfContainer.style.color = 'red';
+                    pdfContainer.style.fontSize = '2rem';
+                    pdfContainer.style.fontWeight = 'bold';
+                    pdfContainer.style.textAlign = 'center';
+                    pdfContainer.style.display = 'flex';
+                    pdfContainer.style.justifyContent = 'center';
+                    pdfContainer.style.alignItems = 'center';
+                    pdfContainer.style.fontFamily = 'Arial, sans-serif';
+                }
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                loadingSpinner.remove();
+                pdfContainer.innerHTML = 'Error loading PDF';
+                pdfContainer.style.color = 'red';
+                pdfContainer.style.textAlign = 'center';
+            }
+        }
         
                 // Call the displayPDF function when the page loads
                 window.onload = displayPDF;
