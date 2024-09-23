@@ -179,19 +179,10 @@ def esprit_get_timetable(action=None, id=None):
     for row in rows:
         cells = row.find_all("td")
         for cell in cells:
-            if "emploi du temps semaine du" in cell.text:
-                date_str = cell.text.split("emploi du temps semaine du  ")[1].split(".pdf")[0]
+            if "Semaine" in cell.text:
+                date_str = cell.text.split("Semaine ")[1].split(".pdf")[0]
                 try:
-                    date_obj = datetime.strptime(date_str, "%d-%m-%Y")
-                    if date_obj > latest_date:
-                        latest_date = date_obj
-                        latest_href = cells[1].find("a")["href"]
-                except ValueError:
-                    log.error("Error parsing date")
-            if "Emploi du temps Semaine" in cell.text:
-                date_str = cell.text.split("Emploi du temps Semaine ")[1].split(".pdf")[0]
-                try:
-                    date_str = cell.text.split("Emploi du temps Semaine ")[1].split(str(datetime.now().year))[0] + str(datetime.now().year)
+                    date_str = cell.text.split("Semaine ")[1].split(str(datetime.now().year))[0] + str(datetime.now().year)
                     date_obj = datetime.strptime(date_str, "%d-%m-%Y")
                     if date_obj > latest_date:
                         latest_date = date_obj
@@ -209,7 +200,11 @@ def esprit_get_timetable(action=None, id=None):
         "__EVENTVALIDATION": eventvalidation,
     }
     response = task.executor(session.post, url, data=data)
-    f = task.executor(os.open, f"www/timetable.pdf", os.O_RDWR | os.O_CREAT)
+    today = datetime.now().strftime("%Y-%m-%d")
+    for file in os.listdir("www"):
+        if file.startswith("timetable_") and file.endswith(".pdf"):
+            os.remove(f"www/{file}")
+    f = task.executor(os.open, f"www/timetable_{today}.pdf", os.O_RDWR | os.O_CREAT)
     task.executor(os.write, f, response.content)
     task.executor(os.close, f)
     k = task.executor(os.open, f"www/pdfdisplay.html", os.O_RDWR | os.O_CREAT)
@@ -224,6 +219,7 @@ def esprit_get_timetable(action=None, id=None):
             <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css">
             <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
             <style>
                 #pdfContainer {
                     display: flex;
@@ -234,6 +230,7 @@ def esprit_get_timetable(action=None, id=None):
             </style>
         </head>
         <body>
+            <a href="javascript:window.location.reload();" class="btn btn-primary position-absolute top-0 end-0 m-3"><i class="fa fa-refresh fa-spin"></i></a>
             <div id="pdfContainer">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
@@ -241,7 +238,7 @@ def esprit_get_timetable(action=None, id=None):
             </div>
             <script>
                 async function displayPDF() {
-            const pdfPath = 'timetable.pdf';
+            const pdfPath = 'timetable_""" + today + """.pdf';
             const searchText = '""" + classroom + """';
             const pdfContainer = document.getElementById('pdfContainer');
             const loadingSpinner = document.getElementsByClassName('spinner-border')[0];
