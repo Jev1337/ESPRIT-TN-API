@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import os
+import re
 _USERNAME = ""
 _PASSWORD = ""
 def login(session):
@@ -168,6 +169,17 @@ def esprit_get_timetable(action=None, id=None):
         classroom = "Class Unavailable"
     else:
         classroom = classroom.text
+
+    first_space_index = classroom.find(" ")
+    classroom = classroom.replace(" ", "", 1)
+    classroom = re.sub(r"\s+", "", classroom)
+    
+    match = re.search(r"[1-5][A-Z]+-?[A-Z]*[0-9]{0,2}", classroom)
+    if match:
+        classroom = match.group(0)
+    if first_space_index != -1:
+        classroom = classroom[:first_space_index] + " " + classroom[first_space_index:]
+    service.call("input_text", "set_value", entity_id="input_text.esprit_user_classroom", value=classroom)
     viewstate = soup.find("input", {"name": "__VIEWSTATE"})["value"]
     eventvalidation = soup.find("input", {"name": "__EVENTVALIDATION"})["value"]
     viewstategenerator = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"]
