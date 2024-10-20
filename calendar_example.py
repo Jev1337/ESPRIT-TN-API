@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import json
 from datetime import datetime
 import fitz
-
+import re
 
 def getCalendar(einst):
     loaded_session = einst.getSess()
@@ -15,6 +15,15 @@ def getCalendar(einst):
     response = loaded_session.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
     classroom = soup.find("span", {"id": "Label3"}).text
+    first_space_index = classroom.find(" ")
+    classroom = classroom.replace(" ", "", 1)
+    classroom = re.sub(r"\s+", "", classroom)
+    
+    match = re.search(r"[1-5][A-Z]+-?[A-Z]*[0-9]{0,2}", classroom)
+    if match:
+        classroom = match.group(0)
+    if first_space_index != -1:
+        classroom = classroom[:first_space_index] + " " + classroom[first_space_index:]
     viewstate = soup.find("input", {"name": "__VIEWSTATE"})["value"]
     eventvalidation = soup.find("input", {"name": "__EVENTVALIDATION"})["value"]
     viewstategenerator = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})["value"]
@@ -26,26 +35,23 @@ def getCalendar(einst):
     for row in rows:
         cells = row.find_all("td")
         for cell in cells:
-            if "emploi du temps semaine du" in cell.text:
-                date_str = cell.text.split("emploi du temps semaine du  ")[1].split(".pdf")[0]
+            if "Semaine " in cell.text or "semaine " in cell.text:
                 try:
-                    date_obj = datetime.strptime(date_str, "%d-%m-%Y")
-                    if date_obj > latest_date:
-                        latest_date = date_obj
-                        # Assuming the third column contains the <a> tag with the href
-                        latest_href = cells[1].find("a")["href"]
+                    match = re.search(r"(\d{1,2}[-/]\d{1,2}[-/]\d{4}|\d{8})", cell.text)
+                    if match:
+                        date_str = match.group(0)
+                        if "-" in date_str:
+                            date_obj = datetime.strptime(date_str, "%d-%m-%Y")
+                        elif "/" in date_str:
+                            date_obj = datetime.strptime(date_str, "%d/%m/%Y")
+                        else:
+                            date_obj = datetime.strptime(date_str, "%d%m%Y")
+                        if date_obj > latest_date:
+                            latest_date = date_obj
+                            latest_href = cells[1].find("a")["href"]
                 except ValueError:
-                    print(colored("[-] Error parsing date", "red"))
-            if "Emploi du temps Semaine" in cell.text:
-                date_str = cell.text.split("Emploi du temps Semaine ")[1].split(".pdf")[0]
-                try:
-                    date_obj = datetime.strptime(date_str, "%d-%m-%Y")
-                    if date_obj > latest_date:
-                        latest_date = date_obj
-                        # Assuming the third column contains the <a> tag with the href
-                        latest_href = cells[1].find("a")["href"]
-                except ValueError:
-                    print(colored("[-] Error parsing date", "red"))
+                    print(colored("[-] Error parsing date v2", "red"))
+                    
     print(colored("[+] Latest timetable is: " + str(latest_date) + " with href " + latest_href, "green"))
     print(colored("[+] Downloading the latest timetable", "green"))
     data = {

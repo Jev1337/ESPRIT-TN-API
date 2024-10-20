@@ -191,14 +191,20 @@ def esprit_get_timetable(action=None, id=None):
     for row in rows:
         cells = row.find_all("td")
         for cell in cells:
-            if "Semaine" in cell.text:
-                date_str = cell.text.split("Semaine ")[1].split(".pdf")[0]
+            if "Semaine " in cell.text or "semaine " in cell.text:
                 try:
-                    date_str = cell.text.split("Semaine ")[1].split(str(datetime.now().year))[0] + str(datetime.now().year)
-                    date_obj = datetime.strptime(date_str, "%d-%m-%Y")
-                    if date_obj > latest_date:
-                        latest_date = date_obj
-                        latest_href = cells[1].find("a")["href"]
+                    match = re.search(r"(\d{1,2}[-/]\d{1,2}[-/]\d{4}|\d{8})", cell.text)
+                    if match:
+                        date_str = match.group(0)
+                        if "-" in date_str:
+                            date_obj = datetime.strptime(date_str, "%d-%m-%Y")
+                        elif "/" in date_str:
+                            date_obj = datetime.strptime(date_str, "%d/%m/%Y")
+                        else:
+                            date_obj = datetime.strptime(date_str, "%d%m%Y")
+                        if date_obj > latest_date:
+                            latest_date = date_obj
+                            latest_href = cells[1].find("a")["href"]
                 except ValueError:
                     log.error("Error parsing date v2, Quitting")
                     
