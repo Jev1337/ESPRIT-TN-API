@@ -35,7 +35,7 @@ def getCalendar(einst):
     for row in rows:
         cells = row.find_all("td")
         for cell in cells:
-            if "Semaine " in cell.text or "semaine " in cell.text:
+            if "semaine" in cell.text.lower():
                 try:
                     match = re.search(r"(\d{1,2}[-/]\d{1,2}[-/]\d{4}|\d{8})", cell.text)
                     if match:
