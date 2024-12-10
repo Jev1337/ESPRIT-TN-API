@@ -62,7 +62,6 @@ def getCalendar(einst):
         "__EVENTVALIDATION": eventvalidation,
     }
     response = loaded_session.post(url, data=data)
-    #search within the pdf for page that contains the classroom that we saved in the variable "classroom", and extract that page
     print(colored("[+] Timetable downloaded successfully, filtering...", "green"))
     with open("timetable.pdf", "wb") as f:
         f.write(response.content)
@@ -74,7 +73,6 @@ def getCalendar(einst):
             output_pdf.insert_pdf(pdf, from_page=i, to_page=i)
             break
     if len(output_pdf) > 0:
-        #output_pdf.save("filtered_timetable.pdf")
         pix = output_pdf[0].get_pixmap()
         pix.save("filtered_timetable.png")
         print(colored("[+] Filtered timetable saved as filtered_timetable.pdf", "green"))
