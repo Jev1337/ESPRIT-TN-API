@@ -89,6 +89,8 @@ def esprit_check(action=None, id=None):
         classroom = classroom.text
     service.call("input_text", "set_value", entity_id="input_text.esprit_user_name", value=name.text if name else "")
     service.call("input_text", "set_value", entity_id="input_text.esprit_user_classroom", value=classroom)
+    service.call("input_text", "set_value", entity_id="input_text.last_run_status", value="Checked ESPRIT Info at " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    log.info("Successfully checked ESPRIT info!")
 
 @service
 def esprit_get_marks(action=None, id=None):
@@ -100,7 +102,19 @@ def esprit_get_marks(action=None, id=None):
     response = task.executor(session.get, url)
     if response.url.lower() != "https://esprit-tn.com/ESPOnline/Etudiants/Resultat2021.aspx".lower():
         return
+    
+    # ESPRIT CHECK BLOCK
     soup = BeautifulSoup(response.text, "html.parser")
+    name = soup.find("span", {"id": "Label2"})
+    classroom = soup.find("span", {"id": "Label3"})
+    if classroom is None:
+        classroom = "Class Unavailable"
+    else:
+        classroom = classroom.text
+    service.call("input_text", "set_value", entity_id="input_text.esprit_user_name", value=name.text if name else "")
+    service.call("input_text", "set_value", entity_id="input_text.esprit_user_classroom", value=classroom)
+    # END OF ESPRIT CHECK BLOCK
+
     table = soup.find("table", {"id": "ContentPlaceHolder1_GridView1"})
     if table is None:
         service.call("input_number", "set_value", entity_id="input_number.esprit_marks_avg", value=0)
@@ -162,6 +176,8 @@ def esprit_get_marks(action=None, id=None):
         service.call("notify", "dynobeta", message="@everyone", data=data, target="1246109976485695639")
     service.call("input_number", "set_value", entity_id="input_number.esprit_marks_avg", value=avg)
     service.call("input_number", "set_value", entity_id="input_number.esprit_marks_nb", value=len(tot))
+    service.call("input_text", "set_value", entity_id="input_text.last_run_status", value="Checked ESPRIT Marks at " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    log.info("Successfully checked ESPRIT marks!")
 
 @service
 def esprit_get_timetable(action=None, id=None):
@@ -355,3 +371,5 @@ def esprit_get_timetable(action=None, id=None):
             "thumbnail": {"url": "https://i.imgur.com/lKDeVmh.png"}
         }
     }, target="1246109976485695639")
+    service.call("input_text", "set_value", entity_id="input_text.last_run_status", value="Checked ESPRIT Timetable at " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    log.info("Successfully checked ESPRIT timetable!")
