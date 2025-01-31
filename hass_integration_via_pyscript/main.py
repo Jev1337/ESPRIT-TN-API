@@ -117,8 +117,14 @@ def esprit_get_marks(action=None, id=None):
 
     table = soup.find("table", {"id": "ContentPlaceHolder1_GridView1"})
     if table is None:
-        service.call("input_number", "set_value", entity_id="input_number.esprit_marks_avg", value=0)
-        service.call("input_number", "set_value", entity_id="input_number.esprit_marks_nb", value=0)
+        if datetime.now().month == 9:
+            service.call("input_number", "set_value", entity_id="input_number.esprit_marks_avg", value=0)
+            service.call("input_number", "set_value", entity_id="input_number.esprit_marks_nb", value=0)
+            service.call("input_text", "set_value", entity_id="input_text.last_run_status", value="[RZ] Checked ESPRIT Marks at " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            log.info("Successfully checked ESPRIT marks! Reset allowed.")
+        else:
+            service.call("input_text", "set_value", entity_id="input_text.last_run_status", value="[NRZ] Checked ESPRIT Marks at " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            log.info("Successfully checked ESPRIT marks! Prevented reset due to month.")
         return
     rows = table.find_all("tr")
     tot = []
