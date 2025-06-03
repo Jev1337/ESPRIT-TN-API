@@ -44,6 +44,11 @@ print(response.text)
 
 There is an example also of getting the grades of the student in `marks_example.py` file.
 
+## Disclaimer
+
+This is created for educational purposes. I am not responsible for any damages caused by this package. Use at your own risk.
+I Personally don't use this, I just created it to explore and understand how I can manipulate through web pages using Home Assistant with PyScript.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
