@@ -19,6 +19,34 @@ def login(session):
         log.error("Missing one of the required fields (__VIEWSTATE, __VIEWSTATEGENERATOR, or __EVENTVALIDATION).")
         return
     
+    # Check if we need to handle the "I'm not a robot" checkbox
+    checkbox = soup.find("input", {"name": "ctl00$ContentPlaceHolder1$chkImage"})
+    if checkbox:
+        log.info("Found 'I'm not a robot' checkbox, checking it first")
+        data = {
+            "__EVENTTARGET": "ctl00$ContentPlaceHolder1$chkImage",
+            "__EVENTARGUMENT": "",
+            "__VIEWSTATE": viewstate_tag["value"],
+            "__VIEWSTATEGENERATOR": viewstategenerator_tag["value"],
+            "__EVENTVALIDATION": eventvalidation_tag["value"],
+            "ctl00$ContentPlaceHolder1$TextBox1": "",
+            "ctl00$ContentPlaceHolder1$TextBox5": "",
+            "ctl00$ContentPlaceHolder1$TextBox6": "",
+            "ctl00$ContentPlaceHolder1$TextBox3": "",
+            "ctl00$ContentPlaceHolder1$TextBox4": "",
+            "ctl00$ContentPlaceHolder1$pass_parent": "",
+            "ctl00$ContentPlaceHolder1$chkImage": "on"  # Explicitly check the checkbox
+        }
+        response = task.executor(session.post, url, data=data)
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        viewstate_tag = soup.find("input", {"name": "__VIEWSTATE"})
+        viewstategenerator_tag = soup.find("input", {"name": "__VIEWSTATEGENERATOR"})
+        eventvalidation_tag = soup.find("input", {"name": "__EVENTVALIDATION"})
+        if not (viewstate_tag and viewstategenerator_tag and eventvalidation_tag):
+            log.error("Missing one of the required fields after checkbox.")
+            return
+    
     data = {
         "__EVENTTARGET": "",
         "__EVENTARGUMENT": "",
